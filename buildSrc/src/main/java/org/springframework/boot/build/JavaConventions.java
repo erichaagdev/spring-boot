@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.gradle.develocity.agent.gradle.test.DevelocityTestConfiguration;
 import com.gradle.develocity.agent.gradle.test.PredictiveTestSelectionConfiguration;
+import com.gradle.develocity.agent.gradle.test.TestDistributionConfiguration;
 import com.gradle.develocity.agent.gradle.test.TestRetryConfiguration;
 import io.spring.javaformat.gradle.SpringJavaFormatPlugin;
 import io.spring.javaformat.gradle.tasks.CheckFormat;
@@ -168,9 +169,11 @@ class JavaConventions {
 		project.getTasks().withType(Test.class, (test) -> {
 			test.useJUnitPlatform();
 			test.setMaxHeapSize("1024M");
+			test.setIgnoreFailures(true);
 			project.getTasks().withType(Checkstyle.class, test::mustRunAfter);
 			project.getTasks().withType(CheckFormat.class, test::mustRunAfter);
 			configureTestRetries(test);
+			configureTestDistribution(test);
 			configurePredictiveTestSelection(test);
 		});
 		project.getPlugins()
@@ -188,6 +191,27 @@ class JavaConventions {
 
 	private boolean isCi() {
 		return Boolean.parseBoolean(System.getenv("CI"));
+	}
+
+	private void configureTestDistribution(Test test) {
+		int maxLocalExecutors = getIntegerProperty("maxLocalExecutors");
+		int maxRemoteExecutors = getIntegerProperty("maxRemoteExecutors");
+		if (maxLocalExecutors > 0 || maxRemoteExecutors > 0) {
+			TestDistributionConfiguration testDistribution = test.getExtensions()
+					.getByType(DevelocityTestConfiguration.class)
+					.getTestDistribution();
+			testDistribution.getEnabled().set(true);
+			testDistribution.getMaxLocalExecutors().set(maxLocalExecutors);
+			testDistribution.getMaxRemoteExecutors().set(maxRemoteExecutors);
+		}
+	}
+
+	private int getIntegerProperty(String key) {
+		try {
+			return Integer.parseInt(System.getProperty(key));
+		} catch (NumberFormatException e) {
+			return 0;
+		}
 	}
 
 	private void configurePredictiveTestSelection(Test test) {

@@ -1,0 +1,5 @@
+clean_build {
+	tasks = ["clean", "build"]
+	gradle-args = ["--no-build-cache"]
+	warm-ups = 1
+}

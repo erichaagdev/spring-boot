@@ -1,0 +1,50 @@
+name: Verify with Test Distribution
+run-name: Verify with Test Distribution [local=${{ inputs.max-local-executors }}, remote=${{ inputs.max-remote-executors }}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      max-local-executors:
+        description: 'Maximum number of local executors'
+        required: false
+        default: 1
+      max-remote-executors:
+        description: 'Maximum number of remote executors'
+        required: false
+        default: 0
+
+env:
+  GRADLE_PROFILER_VERSION: 0.21.0
+  ITERATIONS: 10
+
+jobs:
+  verify-test-distribution:
+    name: Verify with Test Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: true
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Set up Gradle Profiler
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -s -L -O "https://repo1.maven.org/maven2/org/gradle/profiler/gradle-profiler/${GRADLE_PROFILER_VERSION}/gradle-profiler-${GRADLE_PROFILER_VERSION}.zip"
+          unzip -q -o "gradle-profiler-${GRADLE_PROFILER_VERSION}.zip"
+          rm "gradle-profiler-${GRADLE_PROFILER_VERSION}.zip"
+          echo "$(pwd)/gradle-profiler-${GRADLE_PROFILER_VERSION}/bin" >> $GITHUB_PATH
+      - name: Verify with Test Distribution
+        run: gradle-profiler --profile buildscan --iterations ${{ env.ITERATIONS }} --warmups 1 --cli -DmaxLocalExecutors=${{ inputs.max-local-executors }} -DmaxRemoteExecutors=${{ inputs.max-remote-executors }} --scenario-file profiler.scenarios clean_build
+        env:
+          DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: profile-out
+          path: profile-out/
