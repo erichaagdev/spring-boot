@@ -31,15 +31,12 @@ subprojects {
 
 	tasks.withType(Test).configureEach {
 		ignoreFailures = true
-		def applyTd = System.getProperty("td.apply").toBoolean()
-		if (applyTd) {
+		def enableTestDistribution = System.getProperty("testDistribution").toBoolean()
+		if (enableTestDistribution) {
 			develocity.testDistribution {
 				enabled = true
 				maxRemoteExecutors = System.getProperty("td.maxRemoteExecutors").toInteger()
 				maxLocalExecutors = System.getProperty("td.maxLocalExecutors").toInteger()
-				requirements = System.getProperty("td.requirements").tokenize(',')
-				// Internal property
-				server = uri(System.getProperty("td.server"))
 			}
 			systemProperty("org.springframework.boot.testsupport.TestResource.rewritePaths", "true")
 		}
