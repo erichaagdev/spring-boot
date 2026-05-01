@@ -106,9 +106,10 @@ class KotlinConventions {
 		project.getPlugins().apply(DetektPlugin.class);
 		DetektExtension detekt = project.getExtensions().getByType(DetektExtension.class);
 		detekt.getConfig().setFrom(project.getRootProject().file("config/detekt/config.yml"));
-		project.getTasks()
-			.withType(Detekt.class)
-			.configureEach((task) -> task.getJvmTarget().set(JVM_TARGET.getTarget()));
+		project.getTasks().withType(Detekt.class).configureEach((task) -> {
+			task.getJvmTarget().set(JVM_TARGET.getTarget());
+			task.getOutputs().doNotCacheIf("detekt basePath is non-relocatable (detekt#7170)", (t) -> true);
+		});
 	}
 
 }
